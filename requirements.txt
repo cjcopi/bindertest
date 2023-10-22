@@ -1,7 +1,8 @@
+jupyterlab == 3.6.3
 numpy
 scipy
-matplotlib
-ipywidgets
-ipympl
+matplotlib == 3.7.2
+ipywidgets == 8.0.4
+ipympl == 0.9.3
 shapely
 jupyter_contrib_nbextensions
