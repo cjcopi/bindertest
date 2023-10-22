@@ -4,3 +4,4 @@ matplotlib
 ipywidgets
 ipympl
 shapely
+jupyter_contrib_nbextensions
