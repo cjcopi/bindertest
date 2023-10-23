@@ -296,10 +296,10 @@ class ManifoldPlotter:
     _implemented_manifold_names = ['E2square', 'E2rectangle', 'E2',
                                    'E3', 'E4', 'E5']
     
-    def __init__(self, cmap=mpl.colormaps['viridis'], manifold_name=None):
+    def __init__(self, cmap=None, manifold_name=None):
         self.window = None
         self.fig = None
-        self.cmap = cmap
+        self.cmap = cmap or mpl.colormaps['viridis']
         with plt.ioff():
             self.fig = plt.figure(figsize=(6, 2.5), layout='constrained')
         self.fig.canvas.toolbar_visible = False
@@ -330,6 +330,10 @@ class ManifoldPlotter:
                 s.layout.visibility = 'visible'
                 s.description='$L_A$'
                 s.observe(self._on_length_change, names='value')
+                self.infobox.value=r"""$E_2$: half-turn space, with square base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                Shown is a square base of this domain with the length $L_A$ adjustable.
+                """
             case 'E2rectangle':
                 self.manifold = ManifoldE2()
                 L1 = 2
@@ -352,6 +356,10 @@ class ManifoldPlotter:
                 s2.layout.visibility = 'visible'
                 s2.description='$L_2$'
                 s2.observe(self._on_length_change, names='value')
+                self.infobox.value=r"""$E_2$: half-turn space, with rectangular base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                Shown is a rectangular base of this domain with the lengths $L_1$ along the $x$-axis and $L_2$ along the $y$-axis adjustable.
+                """
             case 'E2':
                 self.manifold = ManifoldE2()
                 L1 = 2
@@ -394,6 +402,12 @@ class ManifoldPlotter:
                 s1.observe(_update_L2y_slider, names='value')
                 s1.observe(_update_L2x_slider, names='value')
                 s2x.observe(_update_L2y_slider, names='value')
+                self.infobox.value=r"""$E_2$: half-turn space, with parallelogram base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                Shown is the most general parallelogram base of this domain with the lengths $L_1$ along the $x$-axis and $L_{2x}$ and $L_{2y}$ for the other side of the parallelogram adjustable.
+                The lengths are constrained to ensure the smallest base domain. This means $-L_1/2 < L_{2x} < L_1/2$ and $L_{2y} > \sqrt{L_1^2 - L_{2x}^2}$.
+                """
+
             case 'E3' | 'E4' | 'E5':
                 LA = 2
                 s = self.length_sliders[0]
@@ -407,10 +421,22 @@ class ManifoldPlotter:
                 s.observe(self._on_length_change, names='value')
                 if manifold_name == 'E3':
                     self.manifold = ManifoldE3()
+                    self.infobox.value=r"""$E_3$: quarter-turn space has a square base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                The square base of this domain has side lengths $L_A$ adjustable.
+                """
                 elif manifold_name == 'E4':
                     self.manifold = ManifoldE4()
+                    self.infobox.value=r"""$E_4$: third-turn space has a rhombus base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                The rhombus base of this domain has side lengths $L_A$ adjustable.
+                """
                 else:
                     self.manifold = ManifoldE5()
+                    self.infobox.value=r"""$E_5$: sixth-turn space has a rhombus base.
+                Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
+                The rhombus base of this domain has side lengths $L_A$ adjustable.
+                """
             case _:
                 raise ValueError(f'Unknown manifold name: "{manifold_name}"')
 
@@ -498,14 +524,19 @@ class ManifoldPlotter:
             description='Manifold:',
             disabled=False)
         manifoldchooser.observe(lambda change: self.setup_manifold(change.new), names='value')
-        
         sidebar = widgets.VBox([manifoldchooser, lengthsliders, LBwidget])
-        self.window = widgets.AppLayout(header=None, footer=None,
-                                       left_sidebar=sidebar,
-                                       center=self.fig.canvas,
-                                       right_sidebar=None,
-                                       pane_widths=[2.4, 5, 0]
-                                      )
+        self.infobox = widgets.HTMLMath(
+            value='Manifold Info',
+            #description='Info:',
+            disabled=True
+        )
+        self.window = widgets.AppLayout(header=None,
+                                        left_sidebar=sidebar,
+                                        center=self.fig.canvas,
+                                        right_sidebar=None,
+                                        footer=self.infobox,
+                                        pane_widths=[2.4, 5, 0]
+                                       )
         
     def fill_plot(self):
         cmin = min(self.LBarr)
@@ -524,4 +555,6 @@ class ManifoldPlotter:
         self.patches.append(plot_polygon(self.manifold._BD, ax=self.ax, add_points=False, lw=2, color='k', fill=False))
         self.ax.legend(loc='center left',
                        title=r'$L_B/L_{\mathrm{LSS}}$ (frac)',
-                       bbox_to_anchor=(1.01, 0.5), bbox_transform=self.ax.transAxes)
+                       bbox_to_anchor=(1.01, 0.5), bbox_transform=self.ax.transAxes,
+                       ncols=len(self.LBarr)//9 + 1,
+                      )
