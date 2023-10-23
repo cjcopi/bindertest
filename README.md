@@ -9,3 +9,5 @@ It is a proof of concept.
 See `requirements.txt` for required modules.
 
 Alternatively, click on the binder link to run in binder without need to setup your own environment. Scroll to the bottom of the notebook for the interactive display.
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/cjcopi/bindertest/HEAD?labpath=Interactive_Region_Contours.ipynb)
