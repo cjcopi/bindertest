@@ -347,6 +347,7 @@ class ManifoldPlotter:
     def setup_manifold(self, manifold_name:str):
         self._clear_length_sliders()
         self.LB_label.value = '$L_B$ (add or remove values below)'
+        self.legend_title = r'$L_B/L_{\mathrm{LSS}}$ (frac)'
         self.ax.cla()
         self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$');
         self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}}$')
@@ -473,6 +474,7 @@ class ManifoldPlotter:
                 """
             case 'E7':
                 self.LB_label.value = '$L_A$ (add or remove values below)'
+                self.legend_title = r'$L_A/L_{\mathrm{LSS}}$ (frac)'
                 self.ax.set_xlabel(r'$x/L_A$')
                 self.ax.set_aspect('auto')
                 L1 = 3.5
@@ -488,7 +490,7 @@ class ManifoldPlotter:
                 self.manifold = ManifoldE7()
                 self.infobox.value=r"""$E_7$: Klein space has a rectangular base.
                 Regions that see clones are boxes with height in the $y$-direction determined by $0 < L_A < 1$.
-                The rectangular base of this domain has side lengths $L_1$ adjustable.
+                The rectangular base of this domain has height $L_1$ adjustable.
                 Notice that the $x$-axis is plotted in units of $L_A$ since the width of the rectangular regions is $L_A$."""
             case _:
                 raise ValueError(f'Unknown manifold name: "{manifold_name}"')
@@ -602,7 +604,7 @@ class ManifoldPlotter:
                         label=f'{lb:g} ({100*frac:2.0f}%)'))
         self.patches.append(plot_polygon(self.manifold._BD, ax=self.ax, add_points=False, lw=2, color='k', fill=False))
         self.ax.legend(loc='center left',
-                       title=r'$L_B/L_{\mathrm{LSS}}$ (frac)',
+                       title=self.legend_title,
                        bbox_to_anchor=(1.01, 0.5), bbox_transform=self.ax.transAxes,
                        ncols=len(self.LBarr)//9 + 1,
                       )
