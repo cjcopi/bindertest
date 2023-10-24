@@ -291,10 +291,39 @@ class ManifoldE5(ManifoldBase):
                 
         return circles
 
+class ManifoldE7(ManifoldBase):
+    _LBmin = 1 / 2
+    _name = "E7"
+    _texname = r'$E_7$'
+        
+    def set_lengths(self, L1):
+        self.L1 = L1
+        self.construct_base_domain()
+        
+    def construct_base_domain(self):
+        self._BD = Polygon([(0, -self.L1/2), (1, -self.L1/2),
+                            (1, self.L1/2),
+                            (0, self.L1/2)])
+    
+    def LB_squared_from_radius(self, r):
+        return 1 - 4 * r**2
+
+    def radius_squared_from_LB(self, LB):
+        return (1 - LB**2) / 2
+
+    def get_regions(self, dy):
+        # Regions are rectangles
+        rects = [
+            Polygon([(0, -dy), (1, -dy), (1, dy), (0, dy)]),
+            Polygon([(0, -self.L1/2 + dy), (1, -self.L1/2 + dy), (1, -self.L1/2), (0, -self.L1/2)]),
+            Polygon([(0, self.L1/2 - dy), (1, self.L1/2 - dy), (1, self.L1/2), (0, self.L1/2)]),
+        ]
+        return rects
+
 
 class ManifoldPlotter:
     _implemented_manifold_names = ['E2square', 'E2rectangle', 'E2',
-                                   'E3', 'E4', 'E5']
+                                   'E3', 'E4', 'E5', 'E7']
     
     def __init__(self, cmap=None, manifold_name=None):
         self.window = None
@@ -317,6 +346,12 @@ class ManifoldPlotter:
     # Only setup the plot? Do not CREATE the window?
     def setup_manifold(self, manifold_name:str):
         self._clear_length_sliders()
+        self.LB_label.value = '$L_B$ (add or remove values below)'
+        self.ax.cla()
+        self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$');
+        self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}}$')
+        self.ax.set_aspect('equal')
+
         match manifold_name:
             case 'E2square':
                 self.manifold = ManifoldE2()
@@ -407,7 +442,6 @@ class ManifoldPlotter:
                 Shown is the most general parallelogram base of this domain with the lengths $L_1$ along the $x$-axis and $L_{2x}$ and $L_{2y}$ for the other side of the parallelogram adjustable.
                 The lengths are constrained to ensure the smallest base domain. This means $-L_1/2 < L_{2x} < L_1/2$ and $L_{2y} > \sqrt{L_1^2 - L_{2x}^2}$.
                 """
-
             case 'E3' | 'E4' | 'E5':
                 LA = 2
                 s = self.length_sliders[0]
@@ -437,14 +471,29 @@ class ManifoldPlotter:
                 Regions that see clones are cylinders with radii determined by $0 < L_B < 1$.
                 The rhombus base of this domain has side lengths $L_A$ adjustable.
                 """
+            case 'E7':
+                self.LB_label.value = '$L_A$ (add or remove values below)'
+                self.ax.set_xlabel(r'$x/L_A$')
+                self.ax.set_aspect('auto')
+                L1 = 3.5
+                s = self.length_sliders[0]
+                s.min = 1
+                s.max = 6
+                s.step = 0.1
+                s.value = L1
+                s.disabled = False
+                s.layout.visibility = 'visible'
+                s.description='$L_1$'
+                s.observe(self._on_length_change, names='value')
+                self.manifold = ManifoldE7()
+                self.infobox.value=r"""$E_7$: Klein space has a rectangular base.
+                Regions that see clones are boxes with height in the $y$-direction determined by $0 < L_A < 1$.
+                The rectangular base of this domain has side lengths $L_1$ adjustable.
+                Notice that the $x$-axis is plotted in units of $L_A$ since the width of the rectangles is $L_A$."""
             case _:
                 raise ValueError(f'Unknown manifold name: "{manifold_name}"')
 
-        self.ax.cla()
         self.ax.set_title(self.manifold.get_texname())
-        self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$');
-        self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}}$')
-        self.ax.set_aspect(1.0)
 
         self._set_manifold_lengths()
         self.patches = []
@@ -473,7 +522,6 @@ class ManifoldPlotter:
         self.patches = []
         # Refill with patches
         self.fill_plot()
-        #plt.show()
         
     def _clear_length_sliders(self):
         """Hide all sliders, remove all handlers."""
@@ -493,8 +541,9 @@ class ManifoldPlotter:
                                             min=0, max=1,
                                             layout=LB_layout,
                                             format='.2f')
+        self.LB_label = widgets.Label('$L_B$  (add or remove values below)')
         # This needs work
-        LBwidget = widgets.VBox([widgets.Label('$L_B$  (add or remove values below)'), self.LB_input])
+        LBwidget = widgets.VBox([self.LB_label, self.LB_input])
         self.LB_input.observe(self._on_LB_change, names='value')
         # Widgets for other length inputs. All may not be needed.
         # These MUST be set/turned on and off by manifolds.
@@ -527,7 +576,6 @@ class ManifoldPlotter:
         sidebar = widgets.VBox([manifoldchooser, lengthsliders, LBwidget])
         self.infobox = widgets.HTMLMath(
             value='Manifold Info',
-            #description='Info:',
             disabled=True
         )
         self.window = widgets.AppLayout(header=None,
