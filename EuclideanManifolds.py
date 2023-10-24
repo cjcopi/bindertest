@@ -309,7 +309,7 @@ class ManifoldE7(ManifoldBase):
         return 1 - 4 * r**2
 
     def radius_squared_from_LB(self, LB):
-        return (1 - LB**2) / 2
+        return (1 - LB**2) / 4
 
     def get_regions(self, dy):
         # Regions are rectangles
