@@ -489,7 +489,7 @@ class ManifoldPlotter:
                 self.infobox.value=r"""$E_7$: Klein space has a rectangular base.
                 Regions that see clones are boxes with height in the $y$-direction determined by $0 < L_A < 1$.
                 The rectangular base of this domain has side lengths $L_1$ adjustable.
-                Notice that the $x$-axis is plotted in units of $L_A$ since the width of the rectangles is $L_A$."""
+                Notice that the $x$-axis is plotted in units of $L_A$ since the width of the rectangular regions is $L_A$."""
             case _:
                 raise ValueError(f'Unknown manifold name: "{manifold_name}"')
 
