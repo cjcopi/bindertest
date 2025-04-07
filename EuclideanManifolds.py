@@ -334,6 +334,9 @@ class ManifoldPlotter:
         self.fig.canvas.toolbar_visible = False
         self.fig.canvas.header_visible = False
         self.ax = self.fig.add_subplot(111)
+        # Without this the canvas does not get drawn.
+        # With this the canvas gets drawn twice!
+        display(self.fig.canvas)
 
         self.length_sliders = []
         # Default lengths
@@ -349,8 +352,8 @@ class ManifoldPlotter:
         self.LB_label.value = '$L_B$ (add or remove values below)'
         self.legend_title = r'$L_B/L_{\mathrm{LSS}}$ (frac)'
         self.ax.cla()
-        self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$');
-        self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}}$')
+        self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$')
+        self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}$')
         self.ax.set_aspect('equal')
 
         match manifold_name:
