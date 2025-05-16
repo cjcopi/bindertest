@@ -482,6 +482,11 @@ class ManifoldPlotter:
             self.LB_input.value = [0.3, 0.4, 0.45, 0.5, 0.6, 0.8, 0.9, 0.98]
         except NotImplementedError:
             pass
+
+        # Defaults. Can be overridden below.
+        self.LB_input.min = 0
+        self.LB_input.max = 1
+
         match manifold_name:
             case 'E2square':
                 self.manifold = ManifoldE2()
