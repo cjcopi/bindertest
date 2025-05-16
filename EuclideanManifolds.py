@@ -1,16 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import numpy as np
 import scipy.optimize as opt
 from shapely.geometry import Point, Polygon, GeometryCollection
 from shapely.plotting import plot_polygon
-from shapely import affinity
+from shapely import affinity, empty, GeometryType
 from abc import ABC, abstractmethod
 import ipywidgets as widgets
 from IPython.display import display
-
-get_ipython().run_line_magic('matplotlib', 'widget')
 
 import matplotlib.pyplot as plt
 
@@ -45,6 +40,8 @@ class ManifoldBase(ABC):
     def make_geometry(self, r):
         a = GeometryCollection()
         for region in self.get_regions(r):
+            if region.is_empty:
+                continue
             a = a.union(region)
         a = self._BD.intersection(a)
         return a
@@ -162,7 +159,6 @@ class Nonorientable(ManifoldBase):
     def radius_from_LB(self, lb):
         return lb
 
-
 class ManifoldE2(Orientable):
     _LBmin = 1 / 2
     _name = "E2"
@@ -207,7 +203,6 @@ class ManifoldE2(Orientable):
         return [Point(center).buffer(r, resolution=self.resolution)
                 for center in centers]
 
-
 class ManifoldE3(Orientable):
     _LBmin = 1 / 4
     _name = "E3"
@@ -239,7 +234,6 @@ class ManifoldE3(Orientable):
                            for center in centers2])
         return circles
 
-
 class ManifoldE4(Orientable):
     _LBmin = 1 / 3
     _name = "E4"
@@ -266,7 +260,6 @@ class ManifoldE4(Orientable):
                       (self.LA/2, self.LA/(2*np.sqrt(3))), (0, self.LA/np.sqrt(3))]
         return [Point(center).buffer(r, resolution=self.resolution)
                 for center in E4_centers]
-
 
 class ManifoldE5(Orientable):
     _LBmin = 1 / 6
@@ -309,7 +302,6 @@ class ManifoldE5(Orientable):
                 
         return circles
 
-
 class ManifoldE7(Nonorientable):
     _name = "E7"
     _texname = r'$E_7$'
@@ -326,17 +318,29 @@ class ManifoldE7(Nonorientable):
                             (0, self.L1y/2)])
     
     def get_regions(self, LAx):
+        # L2x can be shifted by integer multiples of 2 LAx.
+        # To find the closest clone we first enforce |L2x| < LAx
+        L2x = self.L2x
+        while L2x > LAx:
+            L2x -= 2 * LAx
+        while L2x < -LAx:
+            L2x += 2 * LAx
+        # Then we find the smallest values for (LAx - L2x)^2 allowing for shifts
+        # by +/- 2 LAx.
+        dL2x = np.min([(LAx - L2x)**2, (3*LAx - L2x)**2, (LAx + L2x)**2])
+        dy1=np.sqrt(max(0, 1 - LAx**2))/2
+        dy2=np.sqrt(max(0, 1 - dL2x - self.L2z**2))/2
+        
         # Regions are rectangles
-        dy1 = np.sqrt(max(0, 1 - LAx**2)) / 2
-        dy2 = np.sqrt(max(0, 1 - (LAx - self.L2x)**2 - self.L2z**2)) / 2
-        dy = max(dy1, dy2)
-        rects = [
-            Polygon([(0, -dy), (1, -dy), (1, dy), (0, dy)]),
-            Polygon([(0, -self.L1y/2 + dy), (1, -self.L1y/2 + dy), (1, -self.L1y/2), (0, -self.L1y/2)]),
-            Polygon([(0, self.L1y/2 - dy), (1, self.L1y/2 - dy), (1, self.L1y/2), (0, self.L1y/2)]),
-        ]
+        if (dy := max(dy1, dy2)) > 0:
+            rects = [
+                Polygon([(0, -dy), (1, -dy), (1, dy), (0, dy)]),
+                Polygon([(0, -self.L1y/2 + dy), (1, -self.L1y/2 + dy), (1, -self.L1y/2), (0, -self.L1y/2)]),
+                Polygon([(0, self.L1y/2 - dy), (1, self.L1y/2 - dy), (1, self.L1y/2), (0, self.L1y/2)]),
+            ]
+        else:
+            rects = empty(1, geom_type=GeometryType.POLYGON).tolist()
         return rects
-
 
 # E9 is very, very similar to E7
 class ManifoldE9(ManifoldE7):
@@ -344,21 +348,34 @@ class ManifoldE9(ManifoldE7):
     _texname = r'$E_9$'
         
     def get_regions(self, LAx):
-        # Regions are rectangles
-        dy1 = np.sqrt(max(0, 1 - LAx**2)) / 2
-        dy2 = np.sqrt(max(0, 1 - (LAx - self.L2x)**2 - self.L2z**2)) / 2
-        rects = [
-            Polygon([(0, -dy1), (1, -dy1), (1, dy1), (0, dy1)]),
-            Polygon([(0, -self.L1y/2 + dy1), (1, -self.L1y/2 + dy1), (1, -self.L1y/2), (0, -self.L1y/2)]),
-            Polygon([(0, self.L1y/2 - dy1), (1, self.L1y/2 - dy1), (1, self.L1y/2), (0, self.L1y/2)]),
-        ]
+        # L2x can be shifted by integer multiples of 2 LAx.
+        # To find the closest clone we first enforce |L2x| < LAx
+        L2x = self.L2x
+        while L2x > LAx:
+            L2x -= 2 * LAx
+        while L2x < -LAx:
+            L2x += 2 * LAx
+        # Then we find the smallest values for (LAx - L2x)^2 allowing for shifts
+        # by +/- 2 LAx.
+        dL2x = np.min([(LAx - L2x)**2, (3*LAx - L2x)**2, (LAx + L2x)**2])
+        dy1=np.sqrt(max(0, 1 - LAx**2))/2
+        dy2=np.sqrt(max(0, 1 - dL2x - self.L2z**2))/2
+
+        rects = []
+        if dy1 > 0:
+            rects.extend([
+                Polygon([(0, -dy1), (1, -dy1), (1, dy1), (0, dy1)]),
+                Polygon([(0, -self.L1y/2 + dy1), (1, -self.L1y/2 + dy1), (1, -self.L1y/2), (0, -self.L1y/2)]),
+                Polygon([(0, self.L1y/2 - dy1), (1, self.L1y/2 - dy1), (1, self.L1y/2), (0, self.L1y/2)]),
+            ])
         if dy2 > 0:
             rects.extend([
                 Polygon([(0, -self.L1y/4 + dy2), (1, -self.L1y/4 + dy2), (1, -self.L1y/4 - dy2), (0, -self.L1y/4) - dy2]),
                 Polygon([(0, self.L1y/4 - dy2), (1, self.L1y/4 - dy2), (1, self.L1y/4 + dy2), (0, self.L1y/4 + dy2)]),
-        ])
+            ])
+        if len(rects) == 0:
+            rects = empty(1, geom_type=GeometryType.POLYGON).tolist()
         return rects
-
 
 class ManifoldE8(Nonorientable):
     _name = "E8"
@@ -399,7 +416,6 @@ class ManifoldE8(Nonorientable):
                                 for center in centers])
         return regions
 
-
 # E10 is very, very similar to E8
 class ManifoldE10(ManifoldE8):
     _name = "E10"
@@ -427,7 +443,6 @@ class ManifoldE10(ManifoldE8):
             regions.extend([affinity.scale(Point(center).buffer(1, resolution=self.resolution), xfact=xscale, yfact=yscale)
                                 for center in centers])
         return regions
-
 
 class ManifoldPlotter:
     _implemented_manifold_names = ['E2square', 'E2rectangle', 'E2',
@@ -461,7 +476,12 @@ class ManifoldPlotter:
         self.ax.set_xlabel(r'$x/L_{\mathrm{LSS}}$');
         self.ax.set_ylabel(r'$y/L_{\mathrm{LSS}}$')
         self.ax.set_aspect('equal')
-
+        # Not completely sure why this is needed ....
+        try:
+            # Defaults. Can be overridden below.
+            self.LB_input.value = [0.3, 0.4, 0.45, 0.5, 0.6, 0.8, 0.9, 0.98]
+        except NotImplementedError:
+            pass
         match manifold_name:
             case 'E2square':
                 self.manifold = ManifoldE2()
@@ -589,11 +609,12 @@ class ManifoldPlotter:
                 # Not completely sure why this is needed ....
                 try:
                     # Less than 1/2 always sees circles.
-                    self.LB_input.value = [0.5, 0.6, 0.8, 0.9, 0.98]
+                    self.LB_input.value = [0.5, 0.6, 0.8, 0.9, 0.98, 1.2]
                 except NotImplementedError:
                     pass
                 self.LB_input.min = 1 / 2
-                self.LB_label.value = r'$L_{Ax}\ $ (add or remove values below)'
+                self.LB_input.max = 1.8
+                self.LB_label.value = r'$L_{Ax}\ $' f' (add or remove values below, max = {self.LB_input.max})'
                 self.legend_title = r'$L_{Ax}/L_{\mathrm{LSS}}$ (frac)'
                 self.ax.set_xlabel(r'$x/L_{Ax}$')
                 self.ax.set_aspect('auto')
@@ -650,9 +671,9 @@ class ManifoldPlotter:
                 except NotImplementedError:
                     pass
                 self.LB_input.min = 1 / 2
-                self.LB_input.max = 1.5
+                self.LB_input.max = 1.8
 
-                self.LB_label.value = r'$L_{Ax}\ $ (add or remove values below, max = {self.LB_input.max})'
+                self.LB_label.value = r'$L_{Ax}\ $ ' f' (add or remove values below, max = {self.LB_input.max})'
                 self.legend_title = r'$L_{Ax}/L_{\mathrm{LSS}}$ (frac)'
                 self.ax.set_xlabel(r'$x/L_{Ax}$')
                 self.ax.set_aspect('auto')
@@ -690,6 +711,7 @@ class ManifoldPlotter:
 
         self._set_manifold_lengths()
         self.patches = []
+        self.outlines = []
         self.fill_plot()
         self._update_figure()
 
@@ -712,7 +734,10 @@ class ManifoldPlotter:
         # Remove all old patches
         for a in self.patches:
             a.remove()
+        for a in self.outlines:
+            a.remove()
         self.patches = []
+        self.outlines = []
         # Refill with patches
         self.fill_plot()
         
@@ -797,6 +822,16 @@ class ManifoldPlotter:
                 g = Polygon([(xmin-1, ymin-1), (xmin-1, ymin-2), (xmin-2, ymin-2)])
             self.patches.append(plot_polygon(g, ax=self.ax, color=self.cmap(color_mapper(lb)), add_points=False, alpha=1,
                         label=f'{lb:g} ({100*frac:2.0f}%)'))
+        # Now do it again and draw an outline "on top" in case some of the nested regions fully cover others.
+        for lb in self.LBarr:
+            # Radius should not be used here, just pass lb to the manifold.
+            r = self.manifold.radius_from_LB(lb)
+            if (frac := self.manifold.area_ratio(r)) > 0:
+                g = self.manifold.make_geometry(r)
+            else:
+                # Empty polygon so skip
+                continue
+            self.outlines.append(plot_polygon(g, ax=self.ax, edgecolor=self.cmap(color_mapper(lb)), facecolor='none', add_points=False, fill=False, lw=2))
         self.patches.append(plot_polygon(self.manifold._BD, ax=self.ax, add_points=False, lw=2, color='k', fill=False))
         self.ax.legend(loc='center left',
                        title=self.legend_title,
